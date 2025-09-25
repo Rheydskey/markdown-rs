@@ -22,6 +22,7 @@ use alloc::{
 use base64::prelude::BASE64_STANDARD;
 use base64::Engine;
 use core::str;
+use percent_encoding::{percent_decode, percent_decode_str};
 use std::io::Read;
 
 /// Link, image, or footnote call.
@@ -1406,8 +1407,9 @@ fn on_exit_list_item_value(context: &mut CompileContext) {
 }
 
 fn transform_to_base64(context: &CompileContext, destination: &str) -> Option<String> {
+    let percent_decode = percent_decode_str(destination).decode_utf8().ok()?;
     let base_path = context.options.base64_path.clone()?;
-    let joined_path = base_path.join(destination);
+    let joined_path = base_path.join(percent_decode.as_ref());
     let mut p = std::fs::File::open(&joined_path).ok()?;
     let mut vec = Vec::new();
     p.read_to_end(&mut vec).ok()?;
