@@ -22,7 +22,6 @@
 //! * **`serde`**
 //!   — enable serde to serialize ASTs and configuration (includes `dep:serde`)
 
-#![no_std]
 #![deny(clippy::pedantic)]
 #![allow(clippy::doc_link_with_quotes)]
 #![allow(clippy::missing_panics_doc)]

@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use crate::util::{
     line_ending::LineEnding,
     mdx::{EsmParse as MdxEsmParse, ExpressionParse as MdxExpressionParse},
@@ -667,6 +669,9 @@ pub struct CompileOptions {
     /// # }
     /// ```
     pub default_line_ending: LineEnding,
+
+    /// Will convert image to base64 if the base path of image path is setted
+    pub base64_path: Option<PathBuf>,
 
     /// Textual label to describe the backreference back to footnote calls.
     ///

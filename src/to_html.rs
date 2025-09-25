@@ -19,7 +19,10 @@ use alloc::{
     vec,
     vec::Vec,
 };
+use base64::prelude::BASE64_STANDARD;
+use base64::Engine;
 use core::str;
+use std::io::Read;
 
 /// Link, image, or footnote call.
 /// Resource or reference.
@@ -1402,6 +1405,19 @@ fn on_exit_list_item_value(context: &mut CompileContext) {
     }
 }
 
+fn transform_to_base64(context: &CompileContext, destination: &str) -> Option<String> {
+    let base_path = context.options.base64_path.clone()?;
+    let joined_path = base_path.join(destination);
+    let mut p = std::fs::File::open(&joined_path).ok()?;
+    let mut vec = Vec::new();
+    p.read_to_end(&mut vec).ok()?;
+    if !infer::is_image(&vec) {
+        return None;
+    }
+    let a = BASE64_STANDARD.encode(&vec);
+    return Some(a);
+}
+
 /// Handle [`Exit`][Kind::Exit]:{[`Image`][Name::Image],[`Link`][Name::Link]}.
 fn on_exit_media(context: &mut CompileContext) {
     let mut is_in_image = false;
@@ -1457,22 +1473,28 @@ fn on_exit_media(context: &mut CompileContext) {
         };
 
         if let Some(destination) = destination {
-            let allow_dangerous_protocol = context.options.allow_dangerous_protocol
-                || (context.options.allow_any_img_src && media.image);
-
-            let url = if allow_dangerous_protocol {
-                sanitize(destination)
+            let image_option = transform_to_base64(&context, destination);
+            if let Some(base64) = image_option {
+                context.push(&format!("data:image/png;base64, {base64}"))
             } else {
-                sanitize_with_protocols(
-                    destination,
-                    if media.image {
-                        &SAFE_PROTOCOL_SRC
-                    } else {
-                        &SAFE_PROTOCOL_HREF
-                    },
-                )
-            };
-            context.push(&url);
+                let allow_dangerous_protocol = context.options.allow_dangerous_protocol
+                    || (context.options.allow_any_img_src && media.image);
+
+                let url = if allow_dangerous_protocol {
+                    sanitize(destination)
+                } else {
+                    sanitize_with_protocols(
+                        destination,
+                        if media.image {
+                            &SAFE_PROTOCOL_SRC
+                        } else {
+                            &SAFE_PROTOCOL_HREF
+                        },
+                    )
+                };
+
+                context.push(&url);
+            }
         }
 
         if media.image {
